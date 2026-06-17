@@ -419,6 +419,95 @@
       border-radius:10px; color:var(--gold-light); cursor:pointer; transition:all .2s;
     }
     .cta-appt:hover{ background:rgba(201,168,76,.1); border-color:var(--gold-primary); }
+
+    /* ═══ MOBILE TAB BAR ═══ */
+    #mobileTabBar{
+      display:none; /* 桌面端隐藏 */
+      flex-shrink:0; height:58px;
+      background:linear-gradient(180deg,#1A0D04,#120A03);
+      border-top:1px solid var(--border-gold);
+      position:relative; z-index:100;
+    }
+    .tab-btn{
+      flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:3px; background:transparent; border:none; cursor:pointer;
+      color:var(--text-muted); font-family:inherit;
+      transition:color .2s; position:relative; padding-bottom:4px;
+    }
+    .tab-btn.active{ color:var(--gold-primary); }
+    .tab-btn.active .tab-icon{ filter:drop-shadow(0 0 6px rgba(201,168,76,.5)); }
+    .tab-icon{ font-size:20px; line-height:1; }
+    .tab-label{ font-size:10px; letter-spacing:1.5px; }
+    /* 激活指示线 */
+    .tab-btn.active::before{
+      content:''; position:absolute; top:0; left:25%; right:25%; height:2px;
+      background:linear-gradient(90deg,transparent,var(--gold-primary),transparent);
+      border-radius:0 0 2px 2px;
+    }
+    /* 红点徽标 */
+    .tab-badge{
+      position:absolute; top:8px; right:calc(50% - 18px);
+      width:16px; height:16px; border-radius:50%;
+      background:linear-gradient(135deg,#E05050,#C03030);
+      border:1.5px solid #1A0D04;
+      font-size:9px; font-weight:700; color:#fff;
+      display:flex; align-items:center; justify-content:center;
+    }
+
+    /* ═══ 手机端响应式 ═══ */
+    @media (max-width: 768px) {
+      /* 显示底部 Tab 栏 */
+      #mobileTabBar{ display:flex; }
+
+      /* 布局：两个区域叠加，只显示一个 */
+      .layout{ position:relative; }
+
+      .chat-area{
+        position:absolute; inset:0;
+        border-right:none;
+        transition:opacity .22s ease, transform .22s ease;
+      }
+      .chat-area.tab-hidden{
+        opacity:0; pointer-events:none; transform:translateX(-16px);
+      }
+
+      .sidebar{
+        position:absolute; inset:0; width:100%;
+        opacity:0; pointer-events:none; transform:translateX(16px);
+        transition:opacity .22s ease, transform .22s ease;
+      }
+      .sidebar.tab-active{
+        opacity:1; pointer-events:auto; transform:translateX(0);
+      }
+
+      /* 貔貅背景图手机端缩小 */
+      #chatDeco .deco-main{ width:340px; height:340px; }
+
+      /* 头部精简 */
+      .brand-sub{ display:none; }
+      .header{ padding:0 16px; }
+      .brand-name{ font-size:16px; letter-spacing:2px; }
+
+      /* 聊天区内边距收窄 */
+      .chat-messages{ padding:18px 14px 12px; }
+      .input-zone{ padding:10px 14px 16px; }
+      .msg-body{ max-width:78%; }
+
+      /* 产品卡片在手机端稍调整 */
+      .p-card{ height:165px; }
+      .p-right{ width:115px; }
+      .p-name{ font-size:12px; }
+      .p-price{ font-size:15px; }
+
+      /* 弹窗手机端垂直布局 */
+      .modal-inner{ flex-direction:column; max-height:90vh; overflow-y:auto; }
+      .modal-img-panel{ width:100%; height:240px; flex-shrink:0; }
+      .modal-info{ padding:22px 18px 20px; }
+      .modal-name{ font-size:18px; }
+      .modal-price{ font-size:24px; }
+      .modal-box{ max-width:100%; border-radius:14px 14px 0 0; align-self:flex-end; max-height:92vh; }
+      .modal-overlay{ align-items:flex-end; padding:0; }
+    }
   </style>
 </head>
 <body>
@@ -469,6 +558,19 @@
       </div>
     </div>
   </div>
+</div>
+
+<!-- ═══ 手机底部 Tab 栏 ═══ -->
+<div id="mobileTabBar">
+  <button class="tab-btn active" id="tabChat" onclick="switchTab('chat')">
+    <span class="tab-icon">💬</span>
+    <span class="tab-label">对 话</span>
+  </button>
+  <button class="tab-btn" id="tabRec" onclick="switchTab('rec')">
+    <span class="tab-icon">✦</span>
+    <span class="tab-label">推 荐</span>
+    <span class="tab-badge" id="tabBadge" style="display:none"></span>
+  </button>
 </div>
 
 <!-- ═══ DETAIL MODAL ═══ -->
@@ -796,6 +898,14 @@ function renderProducts(list) {
   }).join('');
   S.shownIds = [...S.shownIds, ...list.map(p=>p.id)];
   countEl.textContent = `${list.length} 件推荐`;
+
+  /* 手机端：有新推荐时先亮起徽标，短暂停顿后自动切到推荐Tab */
+  if (window.innerWidth <= 768) {
+    const badge = document.getElementById('tabBadge');
+    badge.textContent = list.length;
+    badge.style.display = 'flex';
+    setTimeout(() => switchTab('rec'), 900);
+  }
 }
 
 /* ════════════════════════════════
@@ -1060,6 +1170,30 @@ document.getElementById('chatInput').addEventListener('keydown', e => {
 document.addEventListener('keydown', e => {
   if (e.key==='Escape') closeModal();
 });
+
+/* ════════════════════════════════
+   MOBILE TAB SWITCH
+════════════════════════════════ */
+function switchTab(tab) {
+  const chatArea = document.querySelector('.chat-area');
+  const sidebar  = document.querySelector('.sidebar');
+  const tabChat  = document.getElementById('tabChat');
+  const tabRec   = document.getElementById('tabRec');
+  const badge    = document.getElementById('tabBadge');
+
+  if (tab === 'chat') {
+    chatArea.classList.remove('tab-hidden');
+    sidebar.classList.remove('tab-active');
+    tabChat.classList.add('active');
+    tabRec.classList.remove('active');
+  } else {
+    chatArea.classList.add('tab-hidden');
+    sidebar.classList.add('tab-active');
+    tabRec.classList.add('active');
+    tabChat.classList.remove('active');
+    badge.style.display = 'none'; // 查看后徽标消失
+  }
+}
 
 boot();
 </script>
